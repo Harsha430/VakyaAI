@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: 'Cinzel';
+  src: url('./assets/fonts/Cinzel-VariableFont_wght.ttf') format('truetype');
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Google Sans';
+  src: url('./assets/fonts/GoogleSansFlex-VariableFont_GRAD,ROND,opsz,slnt,wdth,wght.ttf') format('truetype');
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+body {
+  @apply bg-primary text-parchment font-body;
+  background-image: url('https://www.transparenttextures.com/patterns/stardust.png'); /* Subtle grain */
+  background-attachment: fixed;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  @apply font-heading text-accent;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-primary-light;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-accent rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-accent-glow;
+}
+
+.manuscript-container {
+    @apply bg-primary-light border border-accent/20 rounded-lg p-6 shadow-2xl relative overflow-hidden;
+}
+
+.manuscript-container::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    box-shadow: inset 0 0 50px rgba(0,0,0,0.5);
+}
