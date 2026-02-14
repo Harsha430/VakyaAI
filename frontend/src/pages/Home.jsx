@@ -16,7 +16,12 @@ const Home = () => {
         
         try {
             const data = await analyzePitch(pitchText);
-            setAnalysisData(data);
+            // Flatten the nested structure from backend: { analysis: {...}, original_pitch: ... }
+            // to match ResultsDashboard expectations
+            setAnalysisData({
+                ...data.analysis,
+                original_pitch: data.original_pitch
+            });
             setStatus('success');
         } catch (error) {
             console.error("Analysis Failed", error);

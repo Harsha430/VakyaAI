@@ -7,7 +7,7 @@ from datetime import datetime
 import logging
 
 router = APIRouter()
-logger = logging.getLogg(__name__)
+logger = logging.getLogger(__name__)
 
 @router.post("/analyze", response_model=AnalysisResponse, status_code=201)
 async def analyze_pitch(request: PitchRequest):
@@ -20,8 +20,17 @@ async def analyze_pitch(request: PitchRequest):
     try:
         analysis_data = await analyze_pitch_with_gemini(request.pitch_text)
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         logger.error(f"AI Service Failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=500, content={"detail": f"Internal Error: {str(e)}"})
+
+    # Check for graceful fallback error
+    if "error" in analysis_data:
+        error_msg = f"{analysis_data['error']} Details: {analysis_data.get('details', 'No details')}"
+        logger.error(f"AI Analysis Logic Failed: {analysis_data}")
+        raise HTTPException(status_code=503, detail=error_msg)
     
     # Create Document
     document = {

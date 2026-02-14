@@ -21,7 +21,7 @@ const ScoreChart = ({ scores }) => {
     }));
 
     return (
-        <div className="w-full h-[400px] flex items-center justify-center p-4 bg-primary-light/30 rounded-lg border border-accent/10">
+        <div className="w-full h-[400px] flex items-center justify-center p-4 bg-primary-light/30 rounded-lg border border-accent/10 relative block">
             <ResponsiveContainer width="100%" height="100%">
                 <RadarChart cx="50%" cy="50%" outerRadius="80%" data={data}>
                     <PolarGrid stroke="#F5F5DC" strokeOpacity={0.2} />
