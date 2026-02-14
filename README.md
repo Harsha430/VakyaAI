@@ -1,71 +1,84 @@
 # VākyaAI 🪶
-
 **Refine Your Words. Command Your Vision.**
 
-VākyaAI is an intelligent, AI-powered pitch refinement system designed to evaluate and enhance technical project pitches. Unlike generic chatbots, VākyaAI functions as a structured evaluation engine, analyzing pitches for clarity, impact, innovation, and technical depth using a strict scoring rubric.
+VākyaAI is a premium, AI-powered pitch refinement ecosystem. It doesn't just "fix" grammar; it functions as a structured evaluation engine and pitch architect, leveraging the power of **Gemini 2.5 Flash** to provide elite-level feedback for technical founders, developers, and students.
 
-![VākyaAI Theme](https://via.placeholder.com/800x400?text=VakyaAI+Digital+Manuscript+Theme)
+![VākyaAI Premium Theme](https://via.placeholder.com/1000x500?text=VakyaAI+Manuscript+Edition)
 
-## 🚀 Key Features
+---
 
--   **AI-Powered Analysis**: Utilizes Google Gemini 1.5 Flash to provide deep, structured feedback.
--   **Strict Scoring Engine**: Evaluates pitches on 8 specific metrics (Clarity, Innovation, Persuasiveness, etc.) with a 0-10 scale.
--   **"Digital Manuscript" Aesthetic**: A unique, premium UI theme inspired by ancient scripts and modern intellect.
--   **Visual Analytics**: Interactive radar charts to visualize pitch strengths and weaknesses.
--   **Instant Refinement**: Generates a professionally rewritten version of your pitch automatically.
+## ✨ Evolutionary Features
+
+### 🎙️ Multi-Modal Input
+- **Voice-to-Manuscript**: Direct pitch dictation using the Web Speech API.
+- **Template Library**: Pre-built elite structures for Elevator Pitches, YC Applications, and Technical deep-dives.
+
+### 🏛️ History Archives
+- **Manuscript Repository**: Every analysis is permanently recorded and accessible.
+- **High-Fidelity Scroll Recovery**: Re-view full analysis reports, radar charts, and suggestions in a high-end modal experience.
+
+### 🪴 Growth Lab (Agentic Learning)
+- **Personalized Skill Roadmap**: AI-generated actionable steps based on your lowest metric scores.
+- **Enlightened Resources**: Curated YouTube tutorials, blogs, and documentation links tailored to your specific pitch content.
+- **Practice Mode**: Facing the "Digital Judges" with AI-generated adversarial questions to test your defense.
+
+### 🎯 Deep Analytics
+- **8-Point Scrutiny**: Clarity, Problem Definition, Solution Explanation, Technical Depth, Innovation, Impact, Logical Flow, and Persuasiveness.
+- **Improvement Metrics**: Real-time delta calculation showing exactly how much better your refined pitch is.
+
+---
+
+## 🛡️ Technical Architecture & Robustness
+
+### 🧠 Bulletproof JSON Architecture
+We've implemented a self-healing diagnostic pipeline to ensure 100% uptime:
+- **`json-repair` Integration**: The backend automatically "heals" malformed AI strings (fixing missing brackets or unescaped quotes).
+- **Constrained Decoding**: Leveraging Gemini's `application/json` MIME type for structured data enforcement.
+- **Defensive Multi-Layer Extraction**: A custom regex-based pipeline that surgically extracts JSON from even the largest AI responses.
+
+### 🎨 Design Aesthetic
+- **Glassmorphism UI**: A fluid, translucent interface with subtle glows and parchment-inspired hues.
+- **Cinematic Motion**: Powered by `Framer Motion` for organic transitions and interactive elements.
+- **Visual Intelligence**: `Recharts` implementation for radar-based performance visualization.
+
+---
 
 ## 🛠️ Tech Stack
 
--   **Frontend**: React, Vite, Tailwind CSS, Framer Motion, Recharts
--   **Backend**: FastAPI, Python, Motor (Async MongoDB)
--   **AI Engine**: Google Gemini 1.5 Flash
--   **Database**: MongoDB Atlas
+- **Frontend**: React 18, Vite, Tailwind CSS, Framer Motion, Recharts, Lucide Icons.
+- **Backend**: FastAPI (Python), Motor (Async MongoDB), Pydantic.
+- **Intelligence**: Google Gemini 2.5 Flash.
+- **Database**: MongoDB Atlas.
+
+---
 
 ## 📦 Installation & Setup
 
-### Prerequisites
--   Node.js & npm
--   Python 3.9+
--   MongoDB Connection URI
--   Google Cloud API Key (Gemini)
-
 ### 1. Backend Setup
-
 ```bash
 cd backend
 python -m venv venv
-# Activate Virtual Environment
-# Windows:
-.\venv\Scripts\activate
-# Mac/Linux:
-source venv/bin/activate
-
-# Install Dependencies
+# Activate & Install
+.\venv\Scripts\activate  # Windows
 pip install -r requirements.txt
 
-# Configure Environment
-# Create a .env file in /backend and add:
-# GEMINI_API_KEY=your_key_here
-# MONGO_URI=your_mongo_uri_here
+# Configure .env
+GEMINI_API_KEY=your_key
+MONGO_URI=your_mongodb_uri
+PORT=8000
 
-# Run Server
-uvicorn main:app --reload
+# Run
+uvicorn main:app --reload --port 8000
 ```
 
 ### 2. Frontend Setup
-
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-## 🛡️ Security & Architecture
+---
 
--   **Strict JSON Validation**: The backend enforces rigid JSON structure from the AI to prevent frontend crashes.
--   **Timeout Protection**: API calls have safeguards to ensure the system remains responsive.
--   **CORS Configured**: Secure communication between frontend and backend.
-
-## 📄 License
-
-MIT
+## 📜 License
+MIT © 2026 VākyaAI Team.
