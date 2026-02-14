@@ -2,13 +2,27 @@ import re
 import json
 import logging
 
-def clean_json_string(json_string):
+from json_repair import repair_json
+
+def clean_json_string(text: str) -> str:
     """
-    Cleans a JSON string from potential markdown formatting or extra characters.
+    Robustly extracts the first balanced JSON object from a string and repairs it.
     """
-    json_string = re.sub(r'```json\n?', '', json_string)
-    json_string = re.sub(r'```', '', json_string)
-    return json_string.strip()
+    # Remove markdown blocks
+    text = re.sub(r"```json|```", "", text).strip()
+    
+    # Simple extract using regex for first { and last }
+    match = re.search(r"\{.*\}", text, re.DOTALL)
+    extracted = text
+    if match:
+        extracted = match.group(0)
+    
+    try:
+        # Use json-repair to fix common issues like unescaped quotes or missing braces
+        repaired = repair_json(extracted)
+        return repaired
+    except Exception:
+        return extracted
 
 def calculate_overall_score(scores: dict) -> float:
     """

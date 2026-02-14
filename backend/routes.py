@@ -1,7 +1,12 @@
-from fastapi import APIRouter, HTTPException, Path
-from schemas import PitchRequest, AnalysisResponse, AnalysisResult
-from database import analyses_collection
+from fastapi import APIRouter, HTTPException, Path, Depends
+from fastapi.security import OAuth2PasswordBearer
+from schemas import (
+    PitchRequest, AnalysisResponse, AnalysisResult, 
+    UserCreate, UserLogin, UserOut, Token
+)
+from database import analyses_collection, users_collection
 from ai_service import analyze_pitch_with_gemini
+from auth import get_password_hash, verify_password, create_access_token, decode_token
 from bson import ObjectId
 from datetime import datetime
 import logging
@@ -9,45 +14,84 @@ import logging
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-@router.post("/analyze", response_model=AnalysisResponse, status_code=201)
-async def analyze_pitch(request: PitchRequest):
-    """
-    Analyzes a pitch using Gemini AI and stores the result.
-    """
-    logger.info("Received pitch analysis request.")
-    
-    # Call AI Service
-    try:
-        analysis_data = await analyze_pitch_with_gemini(request.pitch_text)
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        logger.error(f"AI Service Failed: {e}")
-        from fastapi.responses import JSONResponse
-        return JSONResponse(status_code=500, content={"detail": f"Internal Error: {str(e)}"})
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
 
-    # Check for graceful fallback error
-    if "error" in analysis_data:
-        error_msg = f"{analysis_data['error']} Details: {analysis_data.get('details', 'No details')}"
-        logger.error(f"AI Analysis Logic Failed: {analysis_data}")
-        raise HTTPException(status_code=503, detail=error_msg)
+async def get_current_user(token: str = Depends(oauth2_scheme)):
+    payload = decode_token(token)
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    email = payload.get("sub")
+    user = await users_collection.find_one({"email": email})
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+    user["id"] = str(user["_id"])
+    return user
+
+# --- Auth Routes ---
+@router.post("/auth/register", response_model=UserOut, status_code=201)
+async def register(user_data: UserCreate):
+    existing_user = await users_collection.find_one({"email": user_data.email})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
     
-    # Create Document
+    hashed_password = get_password_hash(user_data.password)
+    user_dict = user_data.dict()
+    user_dict["password"] = hashed_password
+    user_dict["created_at"] = datetime.utcnow()
+    
+    result = await users_collection.insert_one(user_dict)
+    user_dict["id"] = str(result.inserted_id)
+    return user_dict
+
+@router.post("/auth/login", response_model=Token)
+async def login(user_data: UserLogin):
+    user = await users_collection.find_one({"email": user_data.email})
+    if not user or not verify_password(user_data.password, user["password"]):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    access_token = create_access_token(data={"sub": user["email"]})
+    return {"access_token": access_token, "token_type": "bearer"}
+
+@router.get("/user/me", response_model=UserOut)
+async def get_me(current_user: dict = Depends(get_current_user)):
+    return current_user
+
+# --- Pitch Routes ---
+@router.post("/analyze", response_model=AnalysisResponse, status_code=201)
+async def analyze_pitch(request: PitchRequest, current_user: dict = Depends(get_current_user)):
+    """
+    Analyzes a pitch and attributes it to the logged-in user.
+    """
+    logger.info(f"User {current_user['email']} requested pitch analysis.")
+    
+    try:
+        analysis_data = await analyze_pitch_with_gemini(request.pitch_text, request.target_audience)
+    except Exception as e:
+        logger.error(f"AI Service Failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
     document = {
+        "user_id": current_user["id"],
         "original_pitch": request.pitch_text,
         "analysis": analysis_data,
         "created_at": datetime.utcnow()
     }
     
-    # Store in MongoDB
-    try:
-        result = await analyses_collection.insert_one(document)
-        document["id"] = str(result.inserted_id)
-    except Exception as e:
-        logger.error(f"Database Insert Failed: {e}")
-        raise HTTPException(status_code=500, detail="Failed to save analysis results.")
-        
+    result = await analyses_collection.insert_one(document)
+    document["id"] = str(result.inserted_id)
     return document
+
+@router.get("/my-analyses", response_model=list[AnalysisResponse])
+async def get_user_analyses(current_user: dict = Depends(get_current_user)):
+    """
+    Retrieves all analyses for the current logged-in user.
+    """
+    cursor = analyses_collection.find({"user_id": current_user["id"]}).sort("created_at", -1)
+    analyses = []
+    async for doc in cursor:
+        doc["id"] = str(doc["_id"])
+        analyses.append(doc)
+    return analyses
 
 @router.get("/analysis/{id}", response_model=AnalysisResponse)
 async def get_analysis(id: str = Path(..., title="The ID of the analysis to retrieve")):

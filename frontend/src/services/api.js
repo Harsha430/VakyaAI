@@ -1,33 +1,52 @@
 import axios from 'axios';
 
-const API_URL = 'http://127.0.0.1:8000/api'; // explicit IP to avoid localhost issues
+const API_URL = 'http://127.0.0.1:8000/api';
 
 const api = axios.create({
     baseURL: API_URL,
-    timeout: 30000, // 30 seconds timeout
+    timeout: 60000,
     headers: {
         'Content-Type': 'application/json',
     },
 });
 
-export const analyzePitch = async (pitchText) => {
-    try {
-        const response = await api.post('/analyze', { pitch_text: pitchText });
-        return response.data;
-    } catch (error) {
-        console.error("API Error Analyzing Pitch:", error);
-        throw error;
+// Add token to requests
+api.interceptors.request.use((config) => {
+    const token = localStorage.getItem('vakyaToken');
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
     }
+    return config;
+});
+
+// Auth Endpoints
+export const loginUser = async (credentials) => {
+    const response = await api.post('/auth/login', credentials);
+    return response.data;
 };
 
-export const getAnalysis = async (id) => {
-    try {
-        const response = await api.get(`/analysis/${id}`);
-        return response.data;
-    } catch (error) {
-        console.error("API Error Fetching Analysis:", error);
-        throw error;
-    }
+export const registerUser = async (userData) => {
+    const response = await api.post('/auth/register', userData);
+    return response.data;
+};
+
+export const getMe = async () => {
+    const response = await api.get('/user/me');
+    return response.data;
+};
+
+// Pitch Endpoints
+export const analyzePitch = async (pitchText, targetAudience = "General Investor") => {
+    const response = await api.post('/analyze', { 
+        pitch_text: pitchText,
+        target_audience: targetAudience
+    });
+    return response.data;
+};
+
+export const getMyAnalyses = async () => {
+    const response = await api.get('/my-analyses');
+    return response.data;
 };
 
 export default api;

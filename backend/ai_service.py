@@ -30,64 +30,77 @@ generation_config = {
 }
 
 
-model = genai.GenerativeModel("gemini-2.0-flash", generation_config=generation_config)
+model = genai.GenerativeModel("gemini-2.5-flash", generation_config=generation_config)
 
 PROMPT_TEMPLATE = """
-Act as a world-class venture capitalist and pitch coach.
-Analyze the pitch below and provide a structured evaluation in JSON format.
+Act as an elite Startup Mentor & Pitch Architect. 
+Analyze the pitch below for the specific Target Audience: "{target_audience}".
 
-RULES:
-1. Scores are integers (0-10).
-2. Strengths/Weaknesses/Suggestions: Exactly 3 bullet points each, max 15 words per bullet.
-3. improved_pitch: Maximum 100 words. Be professional, punchy, and clear.
-4. Output MUST be valid JSON and ONLY JSON. No preamble.
+MISSION:
+1. Provide a rigorous evaluation with professional scores.
+2. Refine the pitch into a "Top-Notch" version tailored EXACTLY for the {target_audience}.
+3. Calculate "Improvement Metrics" by comparing your Refined version against the Original.
+4. Detect missing components crucial for a high-stakes {target_audience} pitch.
+5. Project delivery metrics (Confidence Index, Filler Word prediction).
+6. Generate supporting materials:
+    - Slides & Summaries.
+    - **Personalized Skill Roadmap**: 3 actionable exercises based on lowest scores (e.g., if Clarity < 7, suggest "Concise Framing").
+- **Curated Resources**: 4 high-value links. 
+    - YouTube: Must be a specific tutorial or guide (e.g., "YouTube: How to Pitch by YC").
+    - Category must EXACTLY be one of: "YouTube", "Blog", "Documentation", "Pitch Deck".
 
-Pitch:
+OUTPUT RULES:
+- **VALID RAW JSON ONLY**. No preamble, no markdown blocks, no explanation text.
+- No trailing commas. No comments inside JSON.
+- Ensure all strings (like "improved_pitch") are properly escaped for internal quotes.
+- Keep the response concise to avoid truncation.
+- checklist: Identify 5 components. status=true if present, false if missing.
+- summaries: elevator (30s), linkedin (hooky), email (formal).
+- slides: 6 key slides (Title, Problem, Solution, Market/Architecture, Impact, Close).
+- improvement_metrics: Clarity/Persuasion (0-10 scaled), Overall (score delta).
+- filler_words: Predict likely problematic words based on text structure.
+- practice_questions: 3 tough questions a {target_audience} would ask.
+- personalized_roadmap: 3 steps with "title" and "description".
+
+Pitch Text:
 "{pitch_text}"
 
 Response Schema:
 {{
-"scores": {{
-"clarity": int, "problem_definition": int, "solution_explanation": int, "technical_depth": int, "innovation": int, "impact": int, "logical_flow": int, "persuasiveness": int
-}},
-"overall_score": float,
-"strengths": ["concise bullet", "concise bullet", "concise bullet"],
-"weaknesses": ["concise bullet", "concise bullet", "concise bullet"],
-"suggestions": ["concise bullet", "concise bullet", "concise bullet"],
-"improved_pitch": "Refined professional pitch (max 100 words)"
+    "scores": {{
+        "clarity": int, "problem_definition": int, "solution_explanation": int, "technical_depth": int, "innovation": int, "impact": int, "logical_flow": int, "persuasiveness": int
+    }},
+    "overall_score": float,
+    "strengths": [str], "weaknesses": [str], "suggestions": [str],
+    "improved_pitch": "Elite Refined Version",
+    "improvement_metrics": {{
+        "clarity_delta": int, "persuasion_delta": int, "overall_delta": float
+    }},
+    "checklist": [{{ "label": str, "status": bool }}],
+    "slides": [{{ "title": str, "content": [str] }}],
+    "summaries": {{ "elevator": str, "linkedin": str, "email": str }},
+    "confidence_score": int,
+    "filler_words": [{{ "word": str, "count": int }}],
+    "suggested_resources": [{{ "title": str, "url": str, "category": "YouTube|Blog|Documentation|Pitch Deck" }}],
+    "practice_questions": [str],
+    "personalized_roadmap": [{{ "title": str, "description": str }}]
 }}
 """
 
-async def analyze_pitch_with_gemini(pitch_text: str) -> dict:
-    prompt = PROMPT_TEMPLATE.format(pitch_text=pitch_text)
+async def analyze_pitch_with_gemini(pitch_text: str, target_audience: str = "General Investor") -> dict:
+    prompt = PROMPT_TEMPLATE.format(pitch_text=pitch_text, target_audience=target_audience)
     
     retries = 2
     for attempt in range(retries):
         try:
-            # Add timeout protection
             response = await asyncio.wait_for(
                 model.generate_content_async(prompt),
-                timeout=30.0 # 30 seconds timeout
+                timeout=45.0 
             )
             
-            # --- INSPECTION START ---
-            try:
-                if not response.candidates:
-                    logger.error("Gemini returned NO candidates.")
-                    continue
-                    
-                finish_reason = response.candidates[0].finish_reason
-                if finish_reason.name == "MAX_TOKENS":
-                    logger.warning("Response truncated by MAX_TOKENS limit!")
-                
-            except Exception as debug_err:
-                logger.error(f"Error inspecting response object: {debug_err}")
-            # --- INSPECTION END ---
-
             try:
                 raw_text = response.text
-            except Exception as text_err:
-                 logger.error(f"Failed to access response.text: {text_err}")
+            except Exception:
                  try:
                      raw_text = response.candidates[0].content.parts[0].text
                  except:
@@ -95,15 +108,10 @@ async def analyze_pitch_with_gemini(pitch_text: str) -> dict:
                      
             cleaned_text = clean_json_string(raw_text)
             
-            # Robust Truncation Detection
-            if not cleaned_text.strip().endswith("}"):
-                logger.warning("Detected potential JSON truncation from model output.")
-                # Attempt to close the JSON if it's just missing the end
-                if cleaned_text.count("{") > cleaned_text.count("}"):
-                     cleaned_text += '" }' # Minimal patch to attempt parsing if just trailing quote/brace missing
-            
             try:
-                data = json.loads(cleaned_text)
+                # clean_json_string now uses json_repair internally
+                repaired_json = clean_json_string(raw_text)
+                data = json.loads(repaired_json)
                 
                 # Recalculate score logic
                 if "scores" in data:
@@ -114,61 +122,63 @@ async def analyze_pitch_with_gemini(pitch_text: str) -> dict:
                 
             except json.JSONDecodeError as e:
                 logger.error(f"JSON Parse Error (Attempt {attempt+1}): {e}")
-                logger.debug(f"Offending text: {cleaned_text}")
-                
+                logger.debug(f"RAW TEXT: {raw_text[:500]}... (truncated)")
                 if attempt == retries - 1:
-                    # Final attempt failed
-                    error_msg = "Output truncated by AI" if "logical_flow" in cleaned_text and "}" not in cleaned_text else str(e)
-                    raise ValueError(f"Failed to parse AI response: {error_msg}")
-                continue # Retry
+                    # Final attempt fallback
+                    return MOCK_ANALYSIS_RESULT
+                continue 
                 
         except asyncio.TimeoutError:
             logger.error(f"Gemini API Timeout (Attempt {attempt+1})")
             if attempt == retries - 1:
-                 raise HTTPException(status_code=504, detail="AI processing timed out. Please try again.")
+                 raise HTTPException(status_code=504, detail="AI processing timed out.")
             continue
             
         except Exception as e:
             logger.error(f"Gemini API Error: {e}")
             if attempt == retries - 1:
-                # Graceful Fallback
-                logger.error(f"Gemini API Critical Failure: {e}")
-                
-                error_response = MOCK_ANALYSIS_RESULT.copy()
-                error_response["improved_pitch"] = f"⚠️ ANALYSIS FAILED: {str(e)}\n\nPlease try a slightly shorter or different pitch."
-                
-                return error_response
+                return MOCK_ANALYSIS_RESULT
             continue
 
-    raise HTTPException(status_code=500, detail="Failed to analyze pitch after retries.")
+    raise HTTPException(status_code=500, detail="Failed to analyze pitch.")
 
 # Mock Data for Fallback/Demo Mode
 MOCK_ANALYSIS_RESULT = {
     "scores": {
-        "clarity": 8,
-        "problem_definition": 9,
-        "solution_explanation": 7,
-        "technical_depth": 8,
-        "innovation": 9,
-        "impact": 8,
-        "logical_flow": 8,
-        "persuasiveness": 7
+        "clarity": 8, "problem_definition": 9, "solution_explanation": 7, "technical_depth": 8, "innovation": 9, "impact": 8, "logical_flow": 8, "persuasiveness": 7
     },
     "overall_score": 8.0,
-    "strengths": [
-        "Strong problem definition with clear user pain points.",
-        "Innovative approach using AI for real-time feedback.",
-        "Solid technical feasibility outlined."
+    "strengths": ["Strong problem definition", "High innovation", "Technical feasibility"],
+    "weaknesses": ["Vague monetization", "Weak competitive analysis", "Generic GTM plan"],
+    "suggestions": ["Elaborate on subscription model", "Compare with competitors", "Define target audience"],
+    "improved_pitch": "Refined Pitch: [DEMO MODE] ...",
+    "improvement_metrics": {
+        "clarity_delta": 3, "persuasion_delta": 2, "overall_delta": 2.5
+    },
+    "checklist": [
+        {"label": "Problem defined", "status": True},
+        {"label": "Market size missing", "status": False},
+        {"label": "Solution explained", "status": True}
     ],
-    "weaknesses": [
-        "Monetization strategy is vague.",
-        "Competitive analysis could be deeper.",
-        "Go-to-market plan lacks specifics."
+    "slides": [
+        {"title": "The Problem", "content": ["Manual pitch analysis is slow", "Existing tools lack nuance"]}
     ],
-    "suggestions": [
-        "Elaborate on your subscription model.",
-        "Compare directly with existing competitors.",
-        "Define your initial target audience more clearly."
+    "summaries": {
+        "elevator": "A 30-second elevator pitch...",
+        "linkedin": "A hooky LinkedIn post...",
+        "email": "A professional follow-up email..."
+    },
+    "confidence_score": 85,
+    "filler_words": [{"word": "actually", "count": 2}],
+    "suggested_resources": [
+        {"title": "Pitch Perfecting Guide", "url": "https://youtube.com/watch?v=demo1", "category": "YouTube"},
+        {"title": "The Art of the Startup Pitch", "url": "https://blog.example.com/pitching", "category": "Blog"},
+        {"title": "Airbnb Pitch Deck Analysis", "url": "https://example.com/decks/airbnb", "category": "Pitch Deck"}
     ],
-    "improved_pitch": "Refined Pitch: [DEMO MODE] ... (This is a simulated improvement to demonstrate the UI) ..."
+    "practice_questions": ["What is your CAC?", "Why now?"],
+    "personalized_roadmap": [
+        {"title": "Concise Framing Exercise", "description": "Reduce your 'About' section to exactly 15 words to improve clarity."},
+        {"title": "Value Prop Deep-Dive", "description": "Draft 3 different versions of your value proposition and test with peers."},
+        {"title": "Metric Validation", "description": "Gather real market data to replace generic 'high potential' claims."}
+    ]
 }

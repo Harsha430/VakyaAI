@@ -1,4 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from database import check_database_connection
@@ -16,12 +18,19 @@ async def lifespan(app: FastAPI):
         await check_database_connection()
     except Exception as e:
         logger.critical(f"Failed to connect to database: {e}")
-        # In production, you might want to stop the app here
     yield
     # Shutdown
     logger.info("Shutting down VākyaAI Backend...")
 
 app = FastAPI(title="VākyaAI API", version="1.0.0", lifespan=lifespan)
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    logger.error(f"Validation Error: {exc.errors()}")
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors()},
+    )
 
 # CORS Middleware
 app.add_middleware(

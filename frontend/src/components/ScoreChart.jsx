@@ -21,13 +21,13 @@ const ScoreChart = ({ scores }) => {
     }));
 
     return (
-        <div className="w-full h-[400px] flex items-center justify-center p-4 bg-primary-light/30 rounded-lg border border-accent/10 relative block">
+        <div className="w-full h-[320px] flex items-center justify-center p-4 relative block">
             <ResponsiveContainer width="100%" height="100%">
-                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={data}>
-                    <PolarGrid stroke="#F5F5DC" strokeOpacity={0.2} />
+                <RadarChart cx="50%" cy="50%" outerRadius="75%" data={data}>
+                    <PolarGrid stroke="#F5F5DC" strokeOpacity={0.1} />
                     <PolarAngleAxis 
                         dataKey="subject" 
-                        tick={{ fill: '#F59E0B', fontSize: 12, fontWeight: 'bold' }} 
+                        tick={{ fill: '#F59E0B', fontSize: 10, fontWeight: 'medium' }} 
                     />
                     <PolarRadiusAxis 
                         angle={30} 
@@ -39,13 +39,20 @@ const ScoreChart = ({ scores }) => {
                         name="Pitch Score"
                         dataKey="A"
                         stroke="#2DD4BF"
-                        strokeWidth={2}
+                        strokeWidth={1.5}
                         fill="#2DD4BF"
-                        fillOpacity={0.4}
+                        fillOpacity={0.2}
                     />
                     <Tooltip 
-                        contentStyle={{ backgroundColor: '#1E293B', borderColor: '#F59E0B', color: '#F5F5DC' }}
-                        itemStyle={{ color: '#2DD4BF' }}
+                        contentStyle={{ 
+                            backgroundColor: 'rgba(30, 41, 59, 0.9)', 
+                            borderColor: 'rgba(245, 158, 11, 0.2)', 
+                            color: '#F5F5DC',
+                            borderRadius: '12px',
+                            backdropFilter: 'blur(8px)',
+                            border: '1px solid rgba(255,255,255,0.1)'
+                        }}
+                        itemStyle={{ color: '#2DD4BF', fontSize: '12px' }}
                     />
                 </RadarChart>
             </ResponsiveContainer>

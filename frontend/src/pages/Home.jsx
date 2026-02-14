@@ -10,12 +10,12 @@ const Home = () => {
     const [analysisData, setAnalysisData] = useState(null);
     const [errorMsg, setErrorMsg] = useState("");
 
-    const handleAnalyze = async (pitchText) => {
+    const handleAnalyze = async (pitchText, audience) => {
         setStatus('loading');
         setErrorMsg("");
         
         try {
-            const data = await analyzePitch(pitchText);
+            const data = await analyzePitch(pitchText, audience);
             // Flatten the nested structure from backend: { analysis: {...}, original_pitch: ... }
             // to match ResultsDashboard expectations
             setAnalysisData({
@@ -36,24 +36,32 @@ const Home = () => {
     };
 
     return (
-        <div className="min-h-screen px-4 py-8 md:py-16 relative z-10">
+        <div className="min-h-screen px-4 pt-32 pb-16 relative z-10 font-body">
+            {/* Background Atmosphere */}
+            <div className="fixed inset-0 pointer-events-none overflow-hidden h-screen w-screen -z-10">
+                <div className="absolute top-[20%] right-[10%] w-[500px] h-[500px] bg-accent/5 blur-[120px] rounded-full animate-pulse"></div>
+                <div className="absolute bottom-[10%] left-[5%] w-[400px] h-[400px] bg-accent-light/5 blur-[100px] rounded-full"></div>
+            </div>
+
             {/* Header */}
             <motion.header 
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="text-center mb-16 space-y-4"
+                className="text-center mb-16 space-y-6"
             >
-                <h1 className="text-5xl md:text-7xl font-heading text-transparent bg-clip-text bg-gradient-to-r from-accent via-parchment to-accent drop-shadow-sm">
-                    VākyaAI
+                <div className="inline-block p-1 px-3 rounded-full bg-accent/10 border border-accent/20 text-accent text-[10px] font-bold uppercase tracking-[0.2em] mb-4">
+                    The Scroll of Vākya
+                </div>
+                <h1 className="text-6xl md:text-8xl font-heading text-transparent bg-clip-text bg-gradient-to-b from-parchment via-parchment to-accent/50 leading-tight">
+                    Refine Your <br className="hidden md:block"/> Command
                 </h1>
-                <p className="text-xl text-parchment/60 font-light max-w-2xl mx-auto">
-                    Refine Your Words. Command Your Vision.
+                <p className="text-xl text-parchment/40 font-medium max-w-2xl mx-auto italic">
+                    "Transform raw thought into technical legacy through the lens of AI wisdom."
                 </p>
-                <div className="h-1 w-24 bg-accent/30 mx-auto rounded-full mt-6" />
             </motion.header>
 
             {/* Content Switcher */}
-            <main>
+            <main className="max-w-5xl mx-auto">
                 {status === 'idle' && (
                     <PitchInput onSubmit={handleAnalyze} isLoading={false} />
                 )}

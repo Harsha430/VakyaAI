@@ -12,7 +12,9 @@ if not MONGO_URI:
 
 client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URI)
 db = client.vakyaai_db
-analyses_collection = db.analyses
+# Collection names
+analyses_collection = db.get_collection("analyses")
+users_collection = db.get_collection("users")
 
 async def check_database_connection():
     try:
