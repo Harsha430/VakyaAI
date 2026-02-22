@@ -34,17 +34,9 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     )
 
 # CORS Middleware - Permissive for deployment to avoid blocks
-# We allow both the specific Vercel URL and the wildcard
-origins = [
-    "https://vakya-ai.vercel.app",
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "*"
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
