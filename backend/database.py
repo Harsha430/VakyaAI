@@ -5,10 +5,10 @@ import logging
 
 load_dotenv()
 
-MONGO_URI = os.getenv("MONGO_URI")
+MONGO_URI = os.getenv("MONGO_URI", "").strip()
 
 if not MONGO_URI:
-    raise ValueError("MONGO_URI not found in .env file")
+    raise ValueError("MONGO_URI not found in environment variables")
 
 client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URI)
 db = client.vakyaai_db
