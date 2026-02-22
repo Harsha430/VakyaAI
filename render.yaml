@@ -15,4 +15,4 @@ services:
       - key: FRONTEND_URL
         sync: false # Set this to your Vercel URL
       - key: PYTHON_VERSION
-        value: 3.10.0
+        value: 3.11.0
