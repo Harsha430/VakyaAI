@@ -1,6 +1,17 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+const getApiUrl = () => {
+    let url = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+    // Remove trailing slash if present
+    url = url.replace(/\/$/, '');
+    // Append /api if not present
+    if (!url.endsWith('/api')) {
+        url += '/api';
+    }
+    return url;
+};
+
+const API_URL = getApiUrl();
 
 const api = axios.create({
     baseURL: API_URL,
