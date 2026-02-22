@@ -45,12 +45,25 @@ async def register(user_data: UserCreate):
 
 @router.post("/auth/login", response_model=Token)
 async def login(user_data: UserLogin):
-    user = await users_collection.find_one({"email": user_data.email})
-    if not user or not verify_password(user_data.password, user["password"]):
-        raise HTTPException(status_code=401, detail="Invalid email or password")
-    
-    access_token = create_access_token(data={"sub": user["email"]})
-    return {"access_token": access_token, "token_type": "bearer"}
+    logger.info(f"Login attempt for: {user_data.email}")
+    try:
+        user = await users_collection.find_one({"email": user_data.email})
+        if not user:
+            logger.warning(f"Login failed: User {user_data.email} not found")
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+            
+        if not verify_password(user_data.password, user["password"]):
+            logger.warning(f"Login failed: Incorrect password for {user_data.email}")
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+        
+        logger.info(f"User {user_data.email} authenticated successfully. Creating token...")
+        access_token = create_access_token(data={"sub": user["email"]})
+        return {"access_token": access_token, "token_type": "bearer"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Login process failed: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Login error: {str(e)}")
 
 @router.get("/user/me", response_model=UserOut)
 async def get_me(current_user: dict = Depends(get_current_user)):
