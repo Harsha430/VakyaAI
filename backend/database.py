@@ -6,12 +6,34 @@ import logging
 load_dotenv()
 
 # Get the URI and clean it thoroughly
-MONGO_URI = os.getenv("MONGO_URI", "").strip()
+RAW_URI = os.getenv("MONGO_URI", "").strip()
 
-# Remove surrounding quotes if they exist (common copy-paste issue on Render)
-if (MONGO_URI.startswith('"') and MONGO_URI.endswith('"')) or \
-   (MONGO_URI.startswith("'") and MONGO_URI.endswith("'")):
-    MONGO_URI = MONGO_URI[1:-1].strip()
+def clean_uri(uri: str) -> str:
+    if not uri:
+        return ""
+    # Remove any common prefixes if the user accidentally copied the whole env line
+    if uri.lower().startswith("mongo_uri="):
+        uri = uri[len("mongo_uri="):]
+    
+    uri = uri.strip()
+    
+    # Remove surrounding quotes (common copy-paste issue on Render)
+    while (uri.startswith('"') and uri.endswith('"')) or \
+          (uri.startswith("'") and uri.endswith("'")):
+        uri = uri[1:-1].strip()
+        
+    # Remove trailing '?' if it exists without options
+    if uri.endswith('/?'):
+        uri = uri[:-1]
+    
+    return uri
+
+MONGO_URI = clean_uri(RAW_URI)
+
+# Masked logging for debugging on Render
+if MONGO_URI:
+    masked = f"{MONGO_URI[:15]}...{MONGO_URI[-5:]}" if len(MONGO_URI) > 20 else "***"
+    logging.info(f"Connecting to MongoDB with URI: {masked}")
 
 if not MONGO_URI:
     raise ValueError("MONGO_URI not found in environment variables")
