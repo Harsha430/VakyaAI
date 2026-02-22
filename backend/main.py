@@ -33,24 +33,22 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         content={"detail": exc.errors()},
     )
 
-# CORS Middleware
-origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    os.getenv("FRONTEND_URL", "*") # Production Frontend URL
-]
-
+# CORS Middleware - Permissive for deployment to avoid blocks
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False, # We use Bearer tokens in headers, so credentials (cookies) are not required
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 @app.get("/")
 async def root():
-    return {"message": "VākyaAI Backend is Running", "status": "active"}
+    return {
+        "message": "VākyaAI Backend is Running", 
+        "status": "active",
+        "api_v1": "/api"
+    }
 
 from routes import router as api_router
 app.include_router(api_router, prefix="/api")
