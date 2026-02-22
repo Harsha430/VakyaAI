@@ -9,11 +9,11 @@ class UserBase(BaseModel):
     job_role: Optional[str] = Field(None, description="e.g., Founder, Student, Developer")
 
 class UserCreate(UserBase):
-    password: str = Field(..., min_length=8)
+    password: str = Field(..., min_length=8, max_length=71)
 
 class UserLogin(BaseModel):
     email: EmailStr
-    password: str
+    password: str = Field(..., max_length=71)
 
 class UserOut(UserBase):
     id: str
