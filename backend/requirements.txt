@@ -9,3 +9,4 @@ motor
 json-repair
 fastapi
 uvicorn
+dnspython

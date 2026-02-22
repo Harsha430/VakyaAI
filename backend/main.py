@@ -34,13 +34,32 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     )
 
 # CORS Middleware - Permissive for deployment to avoid blocks
+# We allow both the specific Vercel URL and the wildcard
+origins = [
+    "https://vakya-ai.vercel.app",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "*"
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False, # We use Bearer tokens in headers, so credentials (cookies) are not required
+    allow_origins=origins,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Global Error: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error", "message": str(exc)},
+        headers={
+            "Access-Control-Allow-Origin": "*", # Force CORS header on errors
+        }
+    )
 
 @app.get("/")
 async def root():
